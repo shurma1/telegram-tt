@@ -950,6 +950,8 @@ const Composer: FC<OwnProps & StateProps> = ({
     if (!validateTextLength(text, true)) return;
     if (!checkSlowMode()) return;
 
+    const event = new CustomEvent('onMessageSend');
+
     isInvertedMedia = text && sendCompressed && sendGrouped ? isInvertedMedia : undefined;
 
     if (editingMessage) {
@@ -972,7 +974,7 @@ const Composer: FC<OwnProps & StateProps> = ({
         isInvertedMedia,
       });
     }
-
+    window.dispatchEvent(event);
     lastMessageSendTimeSeconds.current = getServerTime();
 
     clearDraft({ chatId, isLocalOnly: true });
@@ -1054,6 +1056,8 @@ const Composer: FC<OwnProps & StateProps> = ({
 
     const effectId = effect?.id;
 
+    const event = new CustomEvent('onMessageSend');
+
     if (text) {
       if (!checkSlowMode()) return;
 
@@ -1073,6 +1077,7 @@ const Composer: FC<OwnProps & StateProps> = ({
         webPageMediaSize: attachmentSettings.webPageMediaSize,
         webPageUrl: hasWebPagePreview ? webPagePreview!.url : undefined,
       });
+      window.dispatchEvent(event);
     }
 
     if (isForwarding) {
@@ -1135,6 +1140,8 @@ const Composer: FC<OwnProps & StateProps> = ({
 
     const { isSilent, ...restArgs } = args || {};
 
+    const event = new CustomEvent('onMessageSend');
+
     if (!args || Object.keys(restArgs).length === 0) {
       void handleSend(Boolean(isSilent), scheduledAt);
     } else if (args.sendCompressed !== undefined || args.sendGrouped !== undefined) {
@@ -1147,6 +1154,7 @@ const Composer: FC<OwnProps & StateProps> = ({
         scheduledAt,
         effectId,
       });
+      window.dispatchEvent(event);
     }
   });
 
@@ -1196,6 +1204,8 @@ const Composer: FC<OwnProps & StateProps> = ({
       return;
     }
 
+    const event = new CustomEvent('onMessageSend');
+
     if (isInScheduledList || isScheduleRequested) {
       forceShowSymbolMenu();
       requestCalendar((scheduledAt) => {
@@ -1207,6 +1217,7 @@ const Composer: FC<OwnProps & StateProps> = ({
       });
     } else {
       sendMessage({ messageList: currentMessageList, gif, isSilent });
+      window.dispatchEvent(event);
       requestMeasure(() => {
         resetComposer(true);
       });
@@ -1229,6 +1240,8 @@ const Composer: FC<OwnProps & StateProps> = ({
       isPreloadedGlobally: true,
     };
 
+    const event = new CustomEvent('onMessageSend');
+
     if (isInScheduledList || isScheduleRequested) {
       forceShowSymbolMenu();
       requestCalendar((scheduledAt) => {
@@ -1245,6 +1258,7 @@ const Composer: FC<OwnProps & StateProps> = ({
         isSilent,
         shouldUpdateStickerSetOrder: shouldUpdateStickerSetOrder && canUpdateStickerSetsOrder,
       });
+      window.dispatchEvent(event);
       clearDraft({ chatId, threadId, isLocalOnly: true });
 
       requestMeasure(() => {
@@ -1300,6 +1314,8 @@ const Composer: FC<OwnProps & StateProps> = ({
       return;
     }
 
+    const event = new CustomEvent('onMessageSend');
+
     if (isInScheduledList) {
       requestCalendar((scheduledAt) => {
         handleMessageSchedule({ poll }, scheduledAt, currentMessageList);
@@ -1307,6 +1323,7 @@ const Composer: FC<OwnProps & StateProps> = ({
       closePollModal();
     } else {
       sendMessage({ messageList: currentMessageList, poll });
+      window.dispatchEvent(event);
       closePollModal();
     }
   });

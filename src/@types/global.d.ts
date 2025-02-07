@@ -64,6 +64,7 @@ declare module '*.png';
 declare module '*.svg';
 declare module '*.tgs';
 declare module '*.wasm';
+declare module '*.glsl';
 declare module '*.strings';
 
 declare module '*.txt' {
@@ -107,6 +108,7 @@ interface Document {
   mozCancelFullScreen?: () => Promise<void>;
   webkitCancelFullScreen?: () => Promise<void>;
   webkitExitFullscreen?: () => Promise<void>;
+  startViewTransition(updateCallback: () => Promise<void> | void): ViewTransition;
 }
 
 interface HTMLElement {
