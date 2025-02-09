@@ -1,4 +1,5 @@
 import type { RefObject } from 'react';
+import type { StateHookSetter } from '../../lib/teact/teact';
 import React, {
   memo, useEffect, useMemo, useState,
 } from '../../lib/teact/teact';
@@ -7,9 +8,11 @@ import { getActions, withGlobal } from '../../global';
 import type { GlobalState } from '../../global/types';
 import type { FoldersActions } from '../../hooks/reducers/useFoldersReducer';
 import type { ReducerAction } from '../../hooks/useReducer';
+import type { IDropdownParams } from './LeftColumnWithFoldersColumn';
 import { LeftColumnContent, SettingsScreens } from '../../types';
 
 import { selectCurrentChat, selectIsForumPanelOpen, selectTabState } from '../../global/selectors';
+import buildClassName from '../../util/buildClassName';
 import captureEscKeyListener from '../../util/captureEscKeyListener';
 import { captureControlledSwipe } from '../../util/swipeController';
 import {
@@ -33,6 +36,8 @@ import './LeftColumn.scss';
 
 interface OwnProps {
   ref: RefObject<HTMLDivElement>;
+  setDropDownParams: StateHookSetter<IDropdownParams | undefined>;
+  isFoldersColumnEnabled?: boolean;
 }
 
 type StateProps = {
@@ -52,6 +57,7 @@ type StateProps = {
   isClosingSearch?: boolean;
   archiveSettings: GlobalState['archiveSettings'];
   isArchivedStoryRibbonShown?: boolean;
+  orderedFolderIds?: number[];
 };
 
 enum ContentType {
@@ -86,6 +92,9 @@ function LeftColumn({
   isClosingSearch,
   archiveSettings,
   isArchivedStoryRibbonShown,
+  isFoldersColumnEnabled,
+  orderedFolderIds,
+  setDropDownParams,
 }: OwnProps & StateProps) {
   const {
     setGlobalSearchQuery,
@@ -372,6 +381,14 @@ function LeftColumn({
     setGlobalSearchChatId({ id: forumPanelChatId });
   });
 
+  useEffect(() => {
+    const fullReset = () => handleReset(true);
+    window.addEventListener('onFolderClick', fullReset);
+    return () => {
+      window.removeEventListener('onFolderClick', fullReset);
+    };
+  }, []);
+
   useEffect(
     () => {
       const isArchived = content === LeftColumnContent.Archived;
@@ -438,6 +455,16 @@ function LeftColumn({
     }
   }, [clearTwoFaError, loadPasswordInfo, settingsScreen]);
 
+  useEffect(() => {
+    setDropDownParams({
+      content,
+      onReset: handleReset,
+      shouldSkipTransition: shouldSkipHistoryAnimations,
+      onContentChange: setContent,
+
+    });
+  }, [content, handleReset, setContent, setDropDownParams, shouldSkipHistoryAnimations]);
+
   useSyncEffect(() => {
     if (nextSettingsScreen !== undefined) {
       setContent(LeftColumnContent.Settings);
@@ -448,7 +475,7 @@ function LeftColumn({
     if (nextFoldersAction) {
       foldersDispatch(nextFoldersAction);
     }
-  }, [foldersDispatch, nextFoldersAction, nextSettingsScreen, requestNextSettingsScreen]);
+  }, [foldersDispatch, nextFoldersAction, nextSettingsScreen, requestNextSettingsScreen, setContent]);
 
   const handleSettingsScreenSelect = useLastCallback((screen: SettingsScreens) => {
     setContent(LeftColumnContent.Settings);
@@ -471,7 +498,9 @@ function LeftColumn({
         handleSettingsScreenSelect(prevSettingsScreenRef.current!);
       },
     });
-  }, [prevSettingsScreenRef, ref]);
+  }, [prevSettingsScreenRef, ref, setContent]);
+
+  const needFolderColumnRender = !!(isFoldersColumnEnabled && orderedFolderIds?.length && orderedFolderIds?.length > 1);
 
   function renderContent(isActive: boolean) {
     switch (contentType) {
@@ -487,6 +516,7 @@ function LeftColumn({
             isForumPanelOpen={isForumPanelOpen}
             archiveSettings={archiveSettings}
             isStoryRibbonShown={isArchivedStoryRibbonShown}
+            disableBackButton={needFolderColumnRender}
           />
         );
       case ContentType.Settings:
@@ -499,6 +529,7 @@ function LeftColumn({
             shouldSkipTransition={shouldSkipHistoryAnimations}
             onScreenSelect={handleSettingsScreenSelect}
             onReset={handleReset}
+            disableBackButton={needFolderColumnRender}
           />
         );
       case ContentType.NewChannel:
@@ -510,6 +541,7 @@ function LeftColumn({
             content={content}
             onContentChange={setContent}
             onReset={handleReset}
+            disableBackButton={needFolderColumnRender}
           />
         );
       case ContentType.NewGroup:
@@ -520,6 +552,7 @@ function LeftColumn({
             content={content}
             onContentChange={setContent}
             onReset={handleReset}
+            disableBackButton={needFolderColumnRender}
           />
         );
       default:
@@ -540,10 +573,13 @@ function LeftColumn({
             isElectronUpdateAvailable={isElectronUpdateAvailable}
             isForumPanelOpen={isForumPanelOpen}
             onTopicSearch={handleTopicSearch}
+            needFolderColumnRender={needFolderColumnRender}
           />
         );
     }
   }
+
+  const classNames = buildClassName(needFolderColumnRender && 'is-folders-column-enabled');
 
   return (
     <Transition
@@ -556,6 +592,7 @@ function LeftColumn({
       shouldWrap
       wrapExceptionKey={ContentType.Main}
       id="LeftColumn"
+      className={classNames}
       withSwipeControl
     >
       {renderContent}
@@ -581,6 +618,9 @@ export default memo(withGlobal<OwnProps>(
     } = tabState;
     const {
       currentUserId,
+      chatFolders: {
+        orderedIds: orderedFolderIds,
+      },
       passcode: {
         hasPasscode,
       },
@@ -611,6 +651,7 @@ export default memo(withGlobal<OwnProps>(
       isClosingSearch: tabState.globalSearch.isClosing,
       archiveSettings,
       isArchivedStoryRibbonShown: isArchivedRibbonShown,
+      orderedFolderIds,
     };
   },
 )(LeftColumn));

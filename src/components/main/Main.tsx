@@ -59,7 +59,7 @@ import CustomEmojiSetsModal from '../common/CustomEmojiSetsModal.async';
 import DeleteMessageModal from '../common/DeleteMessageModal.async';
 import StickerSetModal from '../common/StickerSetModal.async';
 import UnreadCount from '../common/UnreadCounter';
-import LeftColumn from '../left/LeftColumn';
+import LeftColumnWithFoldersColumn from '../left/LeftColumnWithFoldersColumn';
 import MediaViewer from '../mediaViewer/MediaViewer.async';
 import ReactionPicker from '../middle/message/reactions/ReactionPicker.async';
 import MessageListHistoryHandler from '../middle/MessageListHistoryHandler';
@@ -140,6 +140,8 @@ type StateProps = {
   noRightColumnAnimation?: boolean;
   withInterfaceAnimations?: boolean;
   isSynced?: boolean;
+  isFoldersColumnEnabled?: boolean;
+  orderedFolderIds?: number[];
 };
 
 const APP_OUTDATED_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
@@ -193,6 +195,8 @@ const Main = ({
   noRightColumnAnimation,
   isSynced,
   currentUserId,
+  isFoldersColumnEnabled,
+  orderedFolderIds,
 }: OwnProps & StateProps) => {
   const {
     initMain,
@@ -499,12 +503,20 @@ const Main = ({
     });
   }, [isMiddleColumnOpen, isRightColumnOpen, noRightColumnAnimation, forceUpdate]);
 
+  const needFolderColumnRender = !!(
+    isFoldersColumnEnabled
+    && orderedFolderIds?.length
+    && orderedFolderIds?.length > 1
+    && isDesktop
+  );
+
   const className = buildClassName(
     willAnimateLeftColumnRef.current && 'left-column-animating',
     willAnimateRightColumnRef.current && 'right-column-animating',
     isNarrowMessageList && 'narrow-message-list',
     shouldSkipHistoryAnimations && 'history-animation-disabled',
     isFullscreen && 'is-fullscreen',
+    needFolderColumnRender && 'is-folders-column-enabled',
   );
 
   const handleBlur = useLastCallback(() => {
@@ -536,7 +548,10 @@ const Main = ({
 
   return (
     <div ref={containerRef} id="Main" className={className}>
-      <LeftColumn ref={leftColumnRef} />
+      <LeftColumnWithFoldersColumn
+        leftColumnRef={leftColumnRef}
+        needFolderColumnRender={needFolderColumnRender}
+      />
       <MiddleColumn leftColumnRef={leftColumnRef} isMobile={isMobile} />
       <RightColumn isMobile={isMobile} />
       <MediaViewer isOpen={isMediaViewerOpen} />
@@ -599,9 +614,13 @@ export default memo(withGlobal<OwnProps>(
       settings: {
         byKey: {
           wasTimeFormatSetManually,
+          isFoldersColumnEnabled,
         },
       },
       currentUserId,
+      chatFolders: {
+        orderedIds: orderedFolderIds,
+      },
     } = global;
 
     const {
@@ -681,6 +700,8 @@ export default memo(withGlobal<OwnProps>(
       requestedDraft,
       noRightColumnAnimation,
       isSynced: global.isSynced,
+      isFoldersColumnEnabled,
+      orderedFolderIds,
     };
   },
 )(Main));

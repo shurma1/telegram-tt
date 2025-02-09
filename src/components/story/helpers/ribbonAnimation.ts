@@ -19,12 +19,22 @@ export function animateOpening(isArchived?: boolean) {
   cancelDelayedCallbacks();
 
   const {
-    container, toggler, leftMainHeader, ribbonPeers, toggleAvatars,
+    container,
+    toggler,
+    leftMainHeader,
+    ribbonPeers,
+    toggleAvatars,
+    foldersColumn,
   } = getHTMLElements(isArchived);
 
   if (!toggler || !toggleAvatars || !ribbonPeers || !container || !leftMainHeader) {
     return;
   }
+
+  const isFolderColumnExist = !!foldersColumn;
+  const folderColumnWidth = isFolderColumnExist
+    ? foldersColumn.getBoundingClientRect().width + 1 // +stroke
+    : 0;
 
   const { bottom: headerBottom, right: headerRight } = leftMainHeader.getBoundingClientRect();
   const toTop = headerBottom + RIBBON_OFFSET;
@@ -57,8 +67,9 @@ export function animateOpening(isArchived?: boolean) {
       width: fromWidth,
     } = toggleAvatar.getBoundingClientRect();
 
-    const {
+    let {
       left: toLeft,
+      // eslint-disable-next-line prefer-const
       width: toWidth,
     } = peer.getBoundingClientRect();
 
@@ -66,7 +77,9 @@ export function animateOpening(isArchived?: boolean) {
       return;
     }
 
-    fromLeft -= STROKE_OFFSET;
+    toLeft -= folderColumnWidth;
+
+    fromLeft -= STROKE_OFFSET + folderColumnWidth;
     fromWidth += 2 * STROKE_OFFSET;
 
     const fromTranslateX = fromLeft - toLeft;
@@ -155,18 +168,24 @@ export function animateOpening(isArchived?: boolean) {
 
 export function animateClosing(isArchived?: boolean) {
   cancelDelayedCallbacks();
-
   const {
     container,
     toggler,
     toggleAvatars,
     ribbonPeers,
     leftMainHeader,
+    foldersColumn,
   } = getHTMLElements(isArchived);
 
   if (!toggler || !toggleAvatars || !ribbonPeers || !container || !leftMainHeader) {
     return;
   }
+
+  const isFolderColumnExist = !!foldersColumn;
+  const folderColumnWidth = isFolderColumnExist
+    ? foldersColumn.getBoundingClientRect().width + 1 // +stroke
+    : 0;
+
   const { right: headerRight } = leftMainHeader.getBoundingClientRect();
 
   // Toggle avatars are in the reverse order
@@ -190,9 +209,11 @@ export function animateClosing(isArchived?: boolean) {
 
     if (!toggleAvatar) return;
 
-    const {
+    let {
+      // eslint-disable-next-line prefer-const
       top: fromTop,
       left: fromLeft,
+      // eslint-disable-next-line prefer-const
       width: fromWidth,
     } = peer.getBoundingClientRect();
 
@@ -206,7 +227,10 @@ export function animateClosing(isArchived?: boolean) {
       return;
     }
 
+    fromLeft -= folderColumnWidth;
+
     toLeft -= STROKE_OFFSET;
+    toLeft -= folderColumnWidth;
     toWidth += 2 * STROKE_OFFSET;
 
     const toTranslateX = toLeft - fromLeft;
@@ -302,6 +326,7 @@ function getHTMLElements(isArchived?: boolean) {
   const leftMainHeader = container.querySelector<HTMLElement>('.left-header');
   const ribbonPeers = ribbon?.querySelectorAll<HTMLElement>(`.${ribbonStyles.peer}`);
   const toggleAvatars = toggler?.querySelectorAll<HTMLElement>('.Avatar');
+  const foldersColumn = document.getElementById('FoldersColumn');
 
   return {
     container,
@@ -309,6 +334,7 @@ function getHTMLElements(isArchived?: boolean) {
     leftMainHeader,
     ribbonPeers,
     toggleAvatars,
+    foldersColumn,
   };
 }
 

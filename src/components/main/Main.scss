@@ -18,6 +18,12 @@
   }
 }
 
+#Main.is-folders-column-enabled {
+  @media (min-width: 926px) {
+    grid-template-columns: auto auto 1fr;
+  }
+}
+
 .has-call-header {
   --call-header-height: 2rem;
 

@@ -22,6 +22,7 @@ export type OwnProps = {
   onSelectedMemberIdsChange: (ids: string[]) => void;
   onNextStep: () => void;
   onReset: () => void;
+  disableBackButton?: boolean;
 };
 
 type StateProps = {
@@ -44,6 +45,7 @@ const NewChatStep1: FC<OwnProps & StateProps> = ({
   onSelectedMemberIdsChange,
   onNextStep,
   onReset,
+  disableBackButton,
 }) => {
   const {
     setGlobalSearchQuery,
@@ -88,15 +90,17 @@ const NewChatStep1: FC<OwnProps & StateProps> = ({
   return (
     <div className="NewChat step-1">
       <div className="left-header">
-        <Button
-          round
-          size="smaller"
-          color="translucent"
-          onClick={onReset}
-          ariaLabel="Return to Chat List"
-        >
-          <Icon name="arrow-left" />
-        </Button>
+        {!disableBackButton && (
+          <Button
+            round
+            size="smaller"
+            color="translucent"
+            onClick={onReset}
+            ariaLabel="Return to Chat List"
+          >
+            <Icon name="arrow-left" />
+          </Button>
+        )}
         <h3>{lang('GroupAddMembers')}</h3>
       </div>
       <div className="NewChat-inner step-1">

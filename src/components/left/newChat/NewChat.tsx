@@ -17,6 +17,7 @@ export type OwnProps = {
   content: LeftColumnContent;
   onContentChange: (content: LeftColumnContent) => void;
   onReset: () => void;
+  disableBackButton?: boolean;
 };
 
 const RENDER_COUNT = Object.keys(LeftColumnContent).length / 2;
@@ -27,6 +28,7 @@ const NewChat: FC<OwnProps> = ({
   content,
   onContentChange,
   onReset,
+  disableBackButton,
 }) => {
   const [newChatMemberIds, setNewChatMemberIds] = useState<string[]>([]);
 
@@ -53,6 +55,7 @@ const NewChat: FC<OwnProps> = ({
                 onSelectedMemberIdsChange={setNewChatMemberIds}
                 onNextStep={handleNextStep}
                 onReset={onReset}
+                disableBackButton={disableBackButton}
               />
             );
           case LeftColumnContent.NewChannelStep2:
@@ -63,6 +66,7 @@ const NewChat: FC<OwnProps> = ({
                 isActive={isStepActive && isActive}
                 memberIds={newChatMemberIds}
                 onReset={onReset}
+                disableBackButton={disableBackButton}
               />
             );
           default:

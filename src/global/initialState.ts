@@ -282,6 +282,7 @@ export const INITIAL_GLOBAL_STATE: GlobalState = {
       canDisplayChatInTitle: true,
       shouldAllowHttpTransport: true,
       shouldWarnAboutSvg: true,
+      isFoldersColumnEnabled: true,
     },
     themes: {
       light: {

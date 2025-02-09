@@ -38,6 +38,7 @@ export type OwnProps = {
   onSettingsScreenSelect: (screen: SettingsScreens) => void;
   foldersDispatch: FolderEditDispatch;
   onLeftColumnContentChange: (content: LeftColumnContent) => void;
+  disableBackButton?: boolean;
 };
 
 const ArchivedChats: FC<OwnProps> = ({
@@ -50,6 +51,7 @@ const ArchivedChats: FC<OwnProps> = ({
   onSettingsScreenSelect,
   onLeftColumnContentChange,
   foldersDispatch,
+  disableBackButton,
 }) => {
   const { updateArchiveSettings } = getActions();
   const lang = useOldLang();
@@ -91,21 +93,23 @@ const ArchivedChats: FC<OwnProps> = ({
     <div className="ArchivedChats">
       <div className={buildClassName('left-header', !shouldRenderStoryRibbon && 'left-header-shadow')}>
         {lang.isRtl && <div className="DropdownMenuFiller" />}
-        <Button
-          round
-          size="smaller"
-          color="translucent"
-          onClick={onReset}
-          ariaLabel="Return to chat list"
-          className={buildClassName(
-            lang.isRtl && 'rtl',
-            isForumPanelVisible && lang.isRtl && 'right-aligned',
-            shouldDisableDropdownMenuTransitionRef.current && lang.isRtl && 'disable-transition',
-          )}
-          onTransitionEnd={handleDropdownMenuTransitionEnd}
-        >
-          <Icon name="arrow-left" />
-        </Button>
+        {!disableBackButton && (
+          <Button
+            round
+            size="smaller"
+            color="translucent"
+            onClick={onReset}
+            ariaLabel="Return to chat list"
+            className={buildClassName(
+              lang.isRtl && 'rtl',
+              isForumPanelVisible && lang.isRtl && 'right-aligned',
+              shouldDisableDropdownMenuTransitionRef.current && lang.isRtl && 'disable-transition',
+            )}
+            onTransitionEnd={handleDropdownMenuTransitionEnd}
+          >
+            <Icon name="arrow-left" />
+          </Button>
+        )}
         {shouldRenderTitle && <h3 className={titleClassNames}>{lang('ArchivedChats')}</h3>}
         <div className="story-toggler-wrapper">
           <StoryToggler canShow isArchived />

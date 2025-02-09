@@ -148,6 +148,7 @@ export type OwnProps = {
   onScreenSelect: (screen: SettingsScreens) => void;
   shouldSkipTransition?: boolean;
   onReset: (forceReturnToChatList?: true | Event) => void;
+  disableBackButton?: boolean;
 };
 
 const Settings: FC<OwnProps> = ({
@@ -158,6 +159,7 @@ const Settings: FC<OwnProps> = ({
   onScreenSelect,
   onReset,
   shouldSkipTransition,
+  disableBackButton,
 }) => {
   const { closeShareChatFolderModal } = getActions();
 
@@ -498,6 +500,7 @@ const Settings: FC<OwnProps> = ({
           onReset={handleReset}
           onScreenSelect={onScreenSelect}
           editedFolderId={foldersState.folderId}
+          disableBackButton={disableBackButton}
         />
         {renderCurrentSectionContent(isScreenActive, activeKey)}
       </>

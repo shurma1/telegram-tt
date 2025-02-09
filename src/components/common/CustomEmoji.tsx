@@ -117,12 +117,14 @@ const CustomEmoji: FC<OwnProps> = ({
         className,
         'custom-emoji',
         'emoji',
+        size !== STICKER_SIZE && 'custom-emoji-sized',
       )}
       onClick={onClick}
       onAnimationEnd={onAnimationEnd}
       data-entity-type={ApiMessageEntityTypes.CustomEmoji}
       data-document-id={documentId}
       data-alt={customEmoji?.emoji}
+      data-size={size}
       style={style}
     >
       {isSelectable && (

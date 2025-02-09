@@ -44,6 +44,7 @@ type OwnProps = {
   onSettingsScreenSelect: (screen: SettingsScreens) => void;
   onTopicSearch: NoneToVoidFunction;
   onReset: () => void;
+  needFolderColumnRender: boolean;
 };
 
 const TRANSITION_RENDER_COUNT = Object.keys(LeftColumnContent).length / 2;
@@ -67,6 +68,7 @@ const LeftMain: FC<OwnProps> = ({
   onSettingsScreenSelect,
   onReset,
   onTopicSearch,
+  needFolderColumnRender,
 }) => {
   const { closeForumPanel } = getActions();
   const [isNewChatButtonShown, setIsNewChatButtonShown] = useState(IS_TOUCH_ENV);
@@ -181,6 +183,7 @@ const LeftMain: FC<OwnProps> = ({
         onReset={onReset}
         shouldSkipTransition={shouldSkipTransition}
         isClosingSearch={isClosingSearch}
+        needFolderColumnRender={needFolderColumnRender}
       />
       <Transition
         name={shouldSkipTransition ? 'none' : 'zoomFade'}
@@ -201,6 +204,7 @@ const LeftMain: FC<OwnProps> = ({
                   onLeftColumnContentChange={onContentChange}
                   foldersDispatch={foldersDispatch}
                   isForumPanelOpen={isForumPanelVisible}
+                  needFolderColumnRender={needFolderColumnRender}
                 />
               );
             case LeftColumnContent.GlobalSearch:

@@ -67,3 +67,11 @@
     }
   }
 }
+
+#LeftColumn.is-folders-column-enabled {
+  border-left: 1px solid var(--color-borders);
+
+  .left-header h3 {
+    margin-left: 0.6875rem;
+  }
+}

@@ -30,6 +30,7 @@ type OwnProps = {
   messageId?: number;
   chatId?: string;
   activeEmojiInteractions?: ActiveEmojiInteraction[];
+  customSize?: number;
 };
 
 interface StateProps {
@@ -50,13 +51,14 @@ const AnimatedEmoji: FC<OwnProps & StateProps> = ({
   sticker,
   effect,
   soundId,
+  customSize,
 }) => {
   const {
     ref,
     size,
     style,
     handleClick,
-  } = useAnimatedEmoji(chatId, messageId, soundId, activeEmojiInteractions, isOwn, effect?.emoji);
+  } = useAnimatedEmoji(chatId, messageId, soundId, activeEmojiInteractions, isOwn, effect?.emoji, customSize);
   const isIntersecting = useIsIntersecting(ref, observeIntersection);
 
   return (
