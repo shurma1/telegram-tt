@@ -110,6 +110,11 @@
 
   transition: 0.25s ease-in-out transform;
 
+  :global(#Main.is-folders-column-enabled) & {
+    max-width: 12rem;
+    min-width: 12rem;
+  }
+
   &.withMedia {
     transform: translateX(2.625rem);
     margin-right: 2.625rem;

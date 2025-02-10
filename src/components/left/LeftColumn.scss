@@ -68,7 +68,7 @@
   }
 }
 
-#LeftColumn.is-folders-column-enabled {
+.is-folders-column-enabled #LeftColumn{
   border-left: 1px solid var(--color-borders);
 
   .left-header h3 {

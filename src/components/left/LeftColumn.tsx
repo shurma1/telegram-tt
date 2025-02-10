@@ -579,8 +579,6 @@ function LeftColumn({
     }
   }
 
-  const classNames = buildClassName(needFolderColumnRender && 'is-folders-column-enabled');
-
   return (
     <Transition
       ref={ref}
@@ -592,7 +590,6 @@ function LeftColumn({
       shouldWrap
       wrapExceptionKey={ContentType.Main}
       id="LeftColumn"
-      className={classNames}
       withSwipeControl
     >
       {renderContent}
