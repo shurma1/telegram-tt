@@ -23,10 +23,10 @@ import Badge from '../ui/Badge';
 import Menu from '../ui/Menu';
 import MenuItem from '../ui/MenuItem';
 import MenuSeparator from '../ui/MenuSeparator';
+import EMOJI_REGEX from '../../lib/twemojiRegex';
 
 export const FOLDER_EMOJI_TEXT_SIZE = 13;
 const FOLDER_ICON_SIZE = 36;
-const EMOJI_REGEX = /([\u203C-\u3299]|[\uD83C-\uDBFF][\uDC00-\uDFFF])/g;
 
 enum FolderIconTypes {
   customEmoji = 'custom_emoji',
