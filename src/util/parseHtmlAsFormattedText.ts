@@ -42,7 +42,6 @@ export default function parseHtmlAsFormattedText(
       textIndex = index;
       entities.push(entity);
     } else if (node.textContent) {
-      // Skip newlines on the beginning
       if (index === 0 && node.textContent.trim() === '') {
         return;
       }
@@ -68,9 +67,9 @@ export default function parseHtmlAsFormattedText(
 
 export function fixImageContent(fragment: HTMLDivElement) {
   fragment.querySelectorAll('img').forEach((node) => {
-    if (node.dataset.documentId) { // Custom Emoji
+    if (node.dataset.documentId) {
       node.textContent = (node as HTMLImageElement).alt || '';
-    } else { // Regular emoji with image fallback
+    } else {
       node.replaceWith(node.alt || '');
     }
   });

@@ -49,6 +49,7 @@ export function renderTextWithEntities({
   noCustomEmojiPlayback,
   focusedQuote,
   isInSelectMode,
+  forEditor,
 }: {
   text: string;
   entities?: ApiMessageEntity[];
@@ -69,6 +70,7 @@ export function renderTextWithEntities({
   noCustomEmojiPlayback?: boolean;
   focusedQuote?: string;
   isInSelectMode?: boolean;
+  forEditor?: boolean;
 }) {
   if (!entities?.length) {
     return renderMessagePart({
@@ -177,6 +179,7 @@ export function renderTextWithEntities({
         forcePlayback,
         noCustomEmojiPlayback,
         isInSelectMode,
+        forEditor,
       });
 
     if (Array.isArray(newEntity)) {
@@ -229,7 +232,7 @@ export function renderTextWithEntities({
   return result;
 }
 
-export function getTextWithEntitiesAsHtml(formattedText?: ApiFormattedText) {
+export function getTextWithEntitiesAsHtml(formattedText?: ApiFormattedText, forEditor?: boolean) {
   const { text, entities } = formattedText || {};
   if (!text) {
     return '';
@@ -239,6 +242,7 @@ export function getTextWithEntitiesAsHtml(formattedText?: ApiFormattedText) {
     text,
     entities,
     shouldRenderAsHtml: true,
+    forEditor,
   });
 
   if (Array.isArray(result)) {
@@ -393,6 +397,7 @@ function processEntity({
   forcePlayback,
   noCustomEmojiPlayback,
   isInSelectMode,
+  forEditor,
 } : {
   entity: ApiMessageEntity;
   entityContent: TextPart;
@@ -413,6 +418,7 @@ function processEntity({
   forcePlayback?: boolean;
   noCustomEmojiPlayback?: boolean;
   isInSelectMode?: boolean;
+  forEditor?: boolean;
 }) {
   const entityText = typeof entityContent === 'string' && entityContent;
   const renderedContent = nestedEntityContent.length ? nestedEntityContent : entityContent;
@@ -506,17 +512,26 @@ function processEntity({
       );
     }
     case ApiMessageEntityTypes.Code:
-      return (
-        <code
-          className={buildClassName('text-entity-code', 'clickable')}
-          onClick={handleCodeClick}
-          role="textbox"
-          tabIndex={0}
-          data-entity-type={entity.type}
-        >
-          {renderNestedMessagePart()}
-        </code>
-      );
+      return forEditor
+        ? (
+          <code
+            className="text-entity-code"
+            dir="auto"
+          >
+            {renderNestedMessagePart()}
+          </code>
+        )
+        : (
+          <code
+            className={buildClassName('text-entity-code', 'clickable')}
+            onClick={handleCodeClick}
+            role="textbox"
+            tabIndex={0}
+            data-entity-type={entity.type}
+          >
+            {renderNestedMessagePart()}
+          </code>
+        );
     case ApiMessageEntityTypes.Email:
       return (
         <a
@@ -572,7 +587,19 @@ function processEntity({
     case ApiMessageEntityTypes.Underline:
       return <ins data-entity-type={entity.type}>{renderNestedMessagePart()}</ins>;
     case ApiMessageEntityTypes.Spoiler:
-      return <Spoiler containerId={containerId}>{renderNestedMessagePart()}</Spoiler>;
+      return forEditor
+        ? (
+          <span
+            className="spoiler"
+            data-entity-type={ApiMessageEntityTypes.Spoiler}
+          >
+            {renderNestedMessagePart()}
+          </span>
+        )
+        : (
+          <Spoiler containerId={containerId}> {renderNestedMessagePart()}
+          </Spoiler>
+        );
     case ApiMessageEntityTypes.CustomEmoji:
       return (
         <CustomEmoji

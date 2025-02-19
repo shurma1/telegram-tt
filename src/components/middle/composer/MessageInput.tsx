@@ -1,5 +1,5 @@
 import type { ChangeEvent, RefObject } from 'react';
-import type { FC } from '../../../lib/teact/teact';
+import type { FC, StateHookSetter } from '../../../lib/teact/teact';
 import React, {
   getIsHeavyAnimating,
   memo, useEffect, useLayoutEffect,
@@ -9,6 +9,7 @@ import { getActions, withGlobal } from '../../../global';
 
 import type { ApiInputMessageReplyInfo } from '../../../api/types';
 import type { IAnchorPosition, ISettings, ThreadId } from '../../../types';
+import type { ASTNode } from '../../../util/parseHtmlAsAST';
 import type { Signal } from '../../../util/signals';
 
 import { EDITABLE_INPUT_ID } from '../../../config';
@@ -19,9 +20,10 @@ import captureKeyboardListeners from '../../../util/captureKeyboardListeners';
 import { getIsDirectTextInputDisabled } from '../../../util/directInputManager';
 import parseEmojiOnlyString from '../../../util/emoji/parseEmojiOnlyString';
 import focusEditableElement from '../../../util/focusEditableElement';
+import { parseHtmlAsAST } from '../../../util/parseHtmlAsAST';
 import { debounce } from '../../../util/schedulers';
 import {
-  IS_ANDROID, IS_EMOJI_SUPPORTED, IS_IOS, IS_TOUCH_ENV,
+  IS_ANDROID, IS_EMOJI_SUPPORTED, IS_IOS, IS_MAC_OS, IS_TOUCH_ENV,
 } from '../../../util/windowEnvironment';
 import renderText from '../../common/helpers/renderText';
 import { isSelectionInsideInput } from './helpers/selection';
@@ -58,6 +60,11 @@ type OwnProps = {
   isReady: boolean;
   isActive: boolean;
   getHtml: Signal<string>;
+  getAST: () => ASTNode[];
+  setAST: (ast: ASTNode[]) => void;
+  getJsonAST: () => string;
+  isStyleEditing: boolean;
+  setStyleEditing: StateHookSetter<boolean>;
   placeholder: string;
   timedPlaceholderLangKey?: string;
   timedPlaceholderDate?: number;
@@ -121,6 +128,11 @@ const MessageInput: FC<OwnProps & StateProps> = ({
   isReady,
   isActive,
   getHtml,
+  getAST,
+  setAST,
+  getJsonAST,
+  setStyleEditing,
+  isStyleEditing,
   placeholder,
   timedPlaceholderLangKey,
   timedPlaceholderDate,
@@ -173,6 +185,7 @@ const MessageInput: FC<OwnProps & StateProps> = ({
   const [isTextFormatterOpen, openTextFormatter, closeTextFormatter] = useFlag();
   const [textFormatterAnchorPosition, setTextFormatterAnchorPosition] = useState<IAnchorPosition>();
   const [selectedRange, setSelectedRange] = useState<Range>();
+  // const [inputHistory, setInputHistory] = useState<Range>();
   const [isTextFormatterDisabled, setIsTextFormatterDisabled] = useState<boolean>(false);
   const { isMobile } = useAppLayout();
   const isMobileDevice = isMobile && (IS_IOS || IS_ANDROID);
@@ -182,6 +195,27 @@ const MessageInput: FC<OwnProps & StateProps> = ({
   useEffect(() => {
     setShouldDisplayTimer(Boolean(timedPlaceholderLangKey && timedPlaceholderDate));
   }, [timedPlaceholderDate, timedPlaceholderLangKey]);
+
+  useEffect(() => {
+    if (!inputRef.current) {
+      return;
+    }
+    const onChange = () => {
+      setStyleEditing(false);
+      setAST(parseHtmlAsAST(inputRef.current!.innerHTML));
+    };
+    inputRef.current.addEventListener('input', onChange);
+    inputRef.current.addEventListener('paste', onChange);
+    // eslint-disable-next-line consistent-return
+    return () => {
+      if (!inputRef.current) {
+        return;
+      }
+      inputRef.current.addEventListener('input', onChange);
+      // eslint-disable-next-line react-hooks-static-deps/exhaustive-deps
+      inputRef.current.addEventListener('paste', onChange);
+    };
+  }, [inputRef.current]);
 
   const handleTimerEnd = useLastCallback(() => {
     setShouldDisplayTimer(false);
@@ -382,7 +416,6 @@ const MessageInput: FC<OwnProps & StateProps> = ({
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     // https://levelup.gitconnected.com/javascript-events-handlers-keyboard-and-load-events-1b3e46a6b0c3#1960
     const { isComposing } = e;
-
     const html = getHtml();
     if (!isComposing && !html && (e.metaKey || e.ctrlKey)) {
       const targetIndexDelta = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : undefined;
@@ -413,6 +446,22 @@ const MessageInput: FC<OwnProps & StateProps> = ({
     } else {
       e.target.addEventListener('keyup', processSelectionWithTimeout, { once: true });
     }
+
+    const isKeyboardShortcutUsing = (IS_MAC_OS && e.metaKey) || (!IS_MAC_OS && e.ctrlKey);
+
+    const isUndo = isKeyboardShortcutUsing && !isComposing && e.key.toLowerCase() === 'z';
+    const isRedo = isKeyboardShortcutUsing && !isComposing && e.key.toLowerCase() === 'y';
+
+    if (!isUndo && !isRedo) return;
+    e.preventDefault();
+
+    // if (isUndo) {
+    //   console.log('ctrl+z');
+    // }
+    //
+    // if (isRedo) {
+    //   console.log('ctrl+y');
+    // }
   }
 
   function handleChange(e: ChangeEvent<HTMLDivElement>) {
@@ -631,10 +680,17 @@ const MessageInput: FC<OwnProps & StateProps> = ({
         </div>
       )}
       <TextFormatter
+        getAST={getAST}
+        setAST={setAST}
+        getJsonAST={getJsonAST}
         isOpen={isTextFormatterOpen}
         anchorPosition={textFormatterAnchorPosition}
         selectedRange={selectedRange}
         setSelectedRange={setSelectedRange}
+        getHtml={getHtml}
+        inputRef={inputRef}
+        isStyleEditing={isStyleEditing}
+        setStyleEditing={setStyleEditing}
         onClose={handleCloseTextFormatter}
       />
       {forcedPlaceholder && <span className="forced-placeholder">{renderText(forcedPlaceholder!)}</span>}

@@ -1,6 +1,7 @@
 import type { FC } from '../../lib/teact/teact';
 import React, {
-  memo, useEffect, useMemo, useRef, useSignal, useState,
+  memo, useCallback,
+  useEffect, useMemo, useRef, useSignal, useState,
 } from '../../lib/teact/teact';
 import { getActions, getGlobal, withGlobal } from '../../global';
 
@@ -40,6 +41,7 @@ import type {
   MessageListType,
   ThreadId,
 } from '../../types';
+import type { ASTNode } from '../../util/parseHtmlAsAST';
 import { MAIN_THREAD_ID } from '../../api/types';
 
 import {
@@ -106,9 +108,11 @@ import deleteLastCharacterOutsideSelection from '../../util/deleteLastCharacterO
 import { processMessageInputForCustomEmoji } from '../../util/emoji/customEmojiManager';
 import focusEditableElement from '../../util/focusEditableElement';
 import { MEMO_EMPTY_ARRAY } from '../../util/memo';
+import { parseHtmlAsAST } from '../../util/parseHtmlAsAST';
 import parseHtmlAsFormattedText from '../../util/parseHtmlAsFormattedText';
 import { insertHtmlInSelection } from '../../util/selection';
 import { getServerTime } from '../../util/serverTime';
+import { serializeAST } from '../../util/textWithEntitiesToAST';
 import { IS_IOS, IS_VOICE_RECORDING_SUPPORTED } from '../../util/windowEnvironment';
 import windowSize from '../../util/windowSize';
 import applyIosAutoCapitalizationFix from '../middle/composer/helpers/applyIosAutoCapitalizationFix';
@@ -423,6 +427,25 @@ const Composer: FC<OwnProps & StateProps> = ({
   const storyReactionRef = useRef<HTMLButtonElement>(null);
 
   const [getHtml, setHtml] = useSignal('');
+  const [getJsonAST, setJsonAST] = useSignal('');
+  const getAST = useCallback((): ASTNode[] => {
+    try {
+      return JSON.parse(getJsonAST());
+    } catch (error) {
+      return [];
+    }
+  }, [getJsonAST]);
+
+  const setAST = useCallback((ast: ASTNode[]) => {
+    try {
+      setJsonAST(JSON.stringify(ast));
+    } catch (error) { /* empty */ }
+  }, [setJsonAST]);
+
+  const [isStyleEditing, setStyleEditing] = useState(false); // костыль
+  // const [editHistory, setEditHistory] = useState<ASTNode[][]>([]);
+  // const [historyOffset, setHistoryOffset] = useState<number>(0);
+
   const [isMounted, setIsMounted] = useState(false);
   const getSelectionRange = useGetSelectionRange(editableInputCssSelector);
   const lastMessageSendTimeSeconds = useRef<number>();
@@ -449,6 +472,8 @@ const Composer: FC<OwnProps & StateProps> = ({
 
   useEffect(processMessageInputForCustomEmoji, [getHtml]);
 
+  useEffect(() => setStyleEditing(false), [getHtml]);
+
   const customEmojiNotificationNumber = useRef(0);
 
   const [requestCalendar, calendar] = useSchedule(
@@ -459,6 +484,17 @@ const Composer: FC<OwnProps & StateProps> = ({
   useTimeout(() => {
     setIsMounted(true);
   }, MOUNT_ANIMATION_DURATION);
+
+  useEffect(() => {
+    if (!isStyleEditing) {
+      return;
+    }
+    setHtml(getTextWithEntitiesAsHtml(serializeAST(getAST()), true));
+  }, [getJsonAST, getAST, isStyleEditing]);
+
+  useEffect(() => {
+    setHtml(getTextWithEntitiesAsHtml(serializeAST(getAST()), true));
+  }, []);
 
   useEffect(() => {
     if (isInMessageList) return;
@@ -532,7 +568,7 @@ const Composer: FC<OwnProps & StateProps> = ({
       }
     }
 
-    setHtml(`${getHtml()}${newHtml}`);
+    setAST([...getAST(), ...parseHtmlAsAST(newHtml)]);
 
     // If selection is outside of input, set cursor at the end of input
     requestNextMutation(() => {
@@ -552,7 +588,7 @@ const Composer: FC<OwnProps & StateProps> = ({
   const insertFormattedTextAndUpdateCursor = useLastCallback((
     text: ApiFormattedText, inInputId: string = editableInputId,
   ) => {
-    const newHtml = getTextWithEntitiesAsHtml(text);
+    const newHtml = getTextWithEntitiesAsHtml(text, true);
     insertHtmlAndUpdateCursor(newHtml, inInputId);
   });
 
@@ -730,14 +766,17 @@ const Composer: FC<OwnProps & StateProps> = ({
     draft,
     chatId,
     threadId,
-    getHtml,
+    getAST,
+    setAST,
     setHtml,
+    getJsonAST,
     editedMessage: editingMessage,
     isDisabled: isInStoryViewer || Boolean(requestedDraft),
   });
 
   const resetComposer = useLastCallback((shouldPreserveInput = false) => {
     if (!shouldPreserveInput) {
+      setAST([]);
       setHtml('');
     }
 
@@ -758,8 +797,10 @@ const Composer: FC<OwnProps & StateProps> = ({
   });
 
   const [handleEditComplete, handleEditCancel, shouldForceShowEditing] = useEditing(
-    getHtml,
+    getAST,
+    setAST,
     setHtml,
+    getJsonAST,
     editingMessage,
     resetComposer,
     chatId,
@@ -1361,9 +1402,8 @@ const Composer: FC<OwnProps & StateProps> = ({
 
   useEffect(() => {
     if (!isComposerBlocked) return;
-
-    setHtml('');
-  }, [isComposerBlocked, setHtml, attachments]);
+    setAST([]);
+  }, [isComposerBlocked, setAST, setJsonAST, attachments]);
 
   const insertTextAndUpdateCursorAttachmentModal = useLastCallback((text: string) => {
     insertTextAndUpdateCursor(text, EDITABLE_INPUT_MODAL_ID);
@@ -1855,6 +1895,13 @@ const Composer: FC<OwnProps & StateProps> = ({
             isReady={isReady}
             isActive={!hasAttachments}
             getHtml={getHtml}
+            getAST={getAST}
+            setAST={setAST}
+            getJsonAST={getJsonAST}
+            isStyleEditing={isStyleEditing}
+            setStyleEditing={setStyleEditing}
+            // setEditHistory={setEditHistory}
+            // setHistoryOffset={setHistoryOffset}
             placeholder={
               activeVoiceRecording && windowWidth <= SCREEN_WIDTH_TO_HIDE_PLACEHOLDER
                 ? ''

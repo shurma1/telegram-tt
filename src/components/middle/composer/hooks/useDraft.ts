@@ -3,14 +3,14 @@ import { getActions } from '../../../../global';
 
 import type { ApiDraft, ApiMessage } from '../../../../api/types';
 import type { ThreadId } from '../../../../types';
-import type { Signal } from '../../../../util/signals';
+import type { ASTNode } from '../../../../util/parseHtmlAsAST';
 import { ApiMessageEntityTypes } from '../../../../api/types';
 
 import { DRAFT_DEBOUNCE } from '../../../../config';
 import {
   requestMeasure,
 } from '../../../../lib/fasterdom/fasterdom';
-import parseHtmlAsFormattedText from '../../../../util/parseHtmlAsFormattedText';
+import { formatTextToAST, isEqualFormattedText, serializeAST } from '../../../../util/textWithEntitiesToAST';
 import { getTextWithEntitiesAsHtml } from '../../../common/helpers/renderTextWithEntities';
 
 import useLastCallback from '../../../../hooks/useLastCallback';
@@ -34,16 +34,20 @@ const useDraft = ({
   draft,
   chatId,
   threadId,
-  getHtml,
+  getAST,
+  setAST,
   setHtml,
+  getJsonAST,
   editedMessage,
   isDisabled,
 } : {
   draft?: ApiDraft;
   chatId: string;
   threadId: ThreadId;
-  getHtml: Signal<string>;
+  getAST: () => ASTNode[];
+  setAST: (ast: ASTNode[]) => void;
   setHtml: (html: string) => void;
+  getJsonAST: () => string;
   editedMessage?: ApiMessage;
   isDisabled?: boolean;
 }) => {
@@ -52,14 +56,14 @@ const useDraft = ({
   const isTouchedRef = useRef(false);
 
   useEffect(() => {
-    const html = getHtml();
+    const ast = getAST();
     const isLocalDraft = draft?.isLocal !== undefined;
-    if (getTextWithEntitiesAsHtml(draft?.text) === html && !isLocalDraft) {
+    if (isEqualFormattedText(draft?.text, serializeAST(ast)) && !isLocalDraft) {
       isTouchedRef.current = false;
     } else {
       isTouchedRef.current = true;
     }
-  }, [draft, getHtml]);
+  }, [draft, getAST, getJsonAST]);
   useEffect(() => {
     isTouchedRef.current = false;
   }, [chatId, threadId]);
@@ -69,14 +73,14 @@ const useDraft = ({
   const updateDraft = useLastCallback((prevState: { chatId?: string; threadId?: ThreadId } = {}) => {
     if (isDisabled || isEditing || !isTouchedRef.current) return;
 
-    const html = getHtml();
+    const ast = getAST();
 
-    if (html) {
+    if (ast) {
       requestMeasure(() => {
         saveDraft({
           chatId: prevState.chatId ?? chatId,
           threadId: prevState.threadId ?? threadId,
-          text: parseHtmlAsFormattedText(html),
+          text: serializeAST(ast),
         });
       });
     } else {
@@ -100,6 +104,7 @@ const useDraft = ({
     if (chatId === prevChatId && threadId === prevThreadId) {
       if (isTouched && !draft) return; // Prevent reset from other client if we have local edits
       if (!draft && prevDraft) {
+        setAST([]);
         setHtml('');
       }
 
@@ -110,13 +115,14 @@ const useDraft = ({
       return;
     }
 
-    setHtml(getTextWithEntitiesAsHtml(draft.text));
+    setAST(formatTextToAST(draft.text));
+    setHtml(getTextWithEntitiesAsHtml(draft.text, true));
 
     const customEmojiIds = draft.text?.entities
       ?.map((entity) => entity.type === ApiMessageEntityTypes.CustomEmoji && entity.documentId)
       .filter(Boolean) || [];
     if (customEmojiIds.length) loadCustomEmojis({ ids: customEmojiIds });
-  }, [chatId, threadId, draft, getHtml, setHtml, editedMessage, isDisabled]);
+  }, [chatId, threadId, draft, getAST, getJsonAST, setAST, editedMessage, isDisabled]);
 
   // Save draft on chat change. Should be layout effect to read correct html on cleanup
   useLayoutEffect(() => {
@@ -140,7 +146,7 @@ const useDraft = ({
       return;
     }
 
-    if (!getHtml()) {
+    if (!getAST()) {
       updateDraft();
 
       return;
@@ -154,7 +160,7 @@ const useDraft = ({
         updateDraft();
       }
     });
-  }, [chatIdRef, getHtml, isDisabled, runDebouncedForSaveDraft, threadIdRef, updateDraft]);
+  }, [chatIdRef, getAST, getJsonAST, isDisabled, runDebouncedForSaveDraft, threadIdRef, updateDraft]);
 
   useBackgroundMode(updateDraft);
   useBeforeUnload(updateDraft);
