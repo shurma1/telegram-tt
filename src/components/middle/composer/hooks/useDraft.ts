@@ -40,6 +40,7 @@ const useDraft = ({
   getJsonAST,
   editedMessage,
   isDisabled,
+  addAstToHistory,
 } : {
   draft?: ApiDraft;
   chatId: string;
@@ -50,6 +51,7 @@ const useDraft = ({
   getJsonAST: () => string;
   editedMessage?: ApiMessage;
   isDisabled?: boolean;
+  addAstToHistory: (ast: ASTNode[]) => void;
 }) => {
   const { saveDraft, clearDraft, loadCustomEmojis } = getActions();
 
@@ -114,8 +116,9 @@ const useDraft = ({
     if (editedMessage || !draft) {
       return;
     }
-
-    setAST(formatTextToAST(draft.text));
+    const draftAst = formatTextToAST(draft.text);
+    setAST(draftAst);
+    addAstToHistory(draftAst);
     setHtml(getTextWithEntitiesAsHtml(draft.text, true));
 
     const customEmojiIds = draft.text?.entities

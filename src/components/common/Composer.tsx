@@ -41,6 +41,7 @@ import type {
   MessageListType,
   ThreadId,
 } from '../../types';
+import type { SelectionOffsets } from '../../util/getSelectionRelativeElement';
 import type { ASTNode } from '../../util/parseHtmlAsAST';
 import { MAIN_THREAD_ID } from '../../api/types';
 
@@ -291,6 +292,11 @@ type ScheduledMessageArgs = TabState['contentToBeScheduled'] | {
   id: string; queryId: string; isSilent?: boolean;
 };
 
+export interface History {
+  nodes: { selection?: SelectionOffsets; ast: ASTNode[] }[];
+  isUndo: boolean;
+}
+
 const VOICE_RECORDING_FILENAME = 'wonderful-voice-message.ogg';
 // When voice recording is active, composer placeholder will hide to prevent overlapping
 const SCREEN_WIDTH_TO_HIDE_PLACEHOLDER = 600; // px
@@ -426,6 +432,17 @@ const Composer: FC<OwnProps & StateProps> = ({
   // eslint-disable-next-line no-null/no-null
   const storyReactionRef = useRef<HTMLButtonElement>(null);
 
+  const [history, setHistory] = useState<History>({ nodes: [{ ast: [] }], isUndo: false });
+  // eslint-disable-next-line no-null/no-null
+  const [historySelection, setHistorySelection] = useState<SelectionOffsets | null>(null);
+
+  const addAstToHistory = useCallback((ast: ASTNode[], selection?: SelectionOffsets) => {
+    setHistory((state) => ({
+      nodes: [...state.nodes, { ast: JSON.parse(JSON.stringify(ast)), selection }],
+      isUndo: false,
+    }));
+  }, [setHistory]);
+
   const [getHtml, setHtml] = useSignal('');
   const [getJsonAST, setJsonAST] = useSignal('');
   const getAST = useCallback((): ASTNode[] => {
@@ -443,8 +460,6 @@ const Composer: FC<OwnProps & StateProps> = ({
   }, [setJsonAST]);
 
   const [isStyleEditing, setStyleEditing] = useState(false); // костыль
-  // const [editHistory, setEditHistory] = useState<ASTNode[][]>([]);
-  // const [historyOffset, setHistoryOffset] = useState<number>(0);
 
   const [isMounted, setIsMounted] = useState(false);
   const getSelectionRange = useGetSelectionRange(editableInputCssSelector);
@@ -567,9 +582,8 @@ const Composer: FC<OwnProps & StateProps> = ({
         return;
       }
     }
-
-    setAST([...getAST(), ...parseHtmlAsAST(newHtml)]);
-
+    const ast = [...getAST(), ...parseHtmlAsAST(newHtml)];
+    setAST(ast);
     // If selection is outside of input, set cursor at the end of input
     requestNextMutation(() => {
       focusEditableElement(messageInput);
@@ -769,6 +783,7 @@ const Composer: FC<OwnProps & StateProps> = ({
     getAST,
     setAST,
     setHtml,
+    addAstToHistory,
     getJsonAST,
     editedMessage: editingMessage,
     isDisabled: isInStoryViewer || Boolean(requestedDraft),
@@ -778,6 +793,7 @@ const Composer: FC<OwnProps & StateProps> = ({
     if (!shouldPreserveInput) {
       setAST([]);
       setHtml('');
+      setHistory({ nodes: [{ ast: [] }], isUndo: false });
     }
 
     setAttachments(MEMO_EMPTY_ARRAY);
@@ -1403,6 +1419,7 @@ const Composer: FC<OwnProps & StateProps> = ({
   useEffect(() => {
     if (!isComposerBlocked) return;
     setAST([]);
+    setHistory({ isUndo: false, nodes: [{ ast: [] }] });
   }, [isComposerBlocked, setAST, setJsonAST, attachments]);
 
   const insertTextAndUpdateCursorAttachmentModal = useLastCallback((text: string) => {
@@ -1900,8 +1917,6 @@ const Composer: FC<OwnProps & StateProps> = ({
             getJsonAST={getJsonAST}
             isStyleEditing={isStyleEditing}
             setStyleEditing={setStyleEditing}
-            // setEditHistory={setEditHistory}
-            // setHistoryOffset={setHistoryOffset}
             placeholder={
               activeVoiceRecording && windowWidth <= SCREEN_WIDTH_TO_HIDE_PLACEHOLDER
                 ? ''
@@ -1922,6 +1937,11 @@ const Composer: FC<OwnProps & StateProps> = ({
             onFocus={markInputHasFocus}
             onBlur={unmarkInputHasFocus}
             isNeedPremium={isNeedPremium}
+            history={history}
+            setHistory={setHistory}
+            addAstToHistory={addAstToHistory}
+            setHistorySelection={setHistorySelection}
+            historySelection={historySelection}
           />
           {isInMessageList && (
             <>

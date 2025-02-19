@@ -7,6 +7,7 @@ import type { IAnchorPosition } from '../../../types';
 import type { ISelectedTextFormats } from '../../../util/astEditor';
 import type { SelectionOffsets } from '../../../util/getSelectionRelativeElement';
 import type { ASTNode } from '../../../util/parseHtmlAsAST';
+import type { History } from '../../common/Composer';
 
 import {
   applyStylesToAst,
@@ -21,6 +22,7 @@ import { getSelectionRelativeElement } from '../../../util/getSelectionRelativeE
 import { restoreSelectionByOffsets } from '../../../util/restoreSelectionByOffsets';
 import stopEvent from '../../../util/stopEvent';
 import { URLValidate } from '../../../util/URLValidate';
+import { IS_ANDROID, IS_IOS } from '../../../util/windowEnvironment';
 
 import useFlag from '../../../hooks/useFlag';
 import useLastCallback from '../../../hooks/useLastCallback';
@@ -46,6 +48,10 @@ export type OwnProps = {
   inputRef: RefObject<HTMLDivElement | null>;
   setStyleEditing: StateHookSetter<boolean>;
   isStyleEditing: boolean;
+  addAstToHistory: (ast: ASTNode[], selection?: SelectionOffsets) => void;
+  history: History;
+  setHistorySelection: StateHookSetter<SelectionOffsets | null>;
+  historySelection: SelectionOffsets | null;
 };
 
 const TextFormatter: FC<OwnProps> = ({
@@ -59,6 +65,10 @@ const TextFormatter: FC<OwnProps> = ({
   isStyleEditing,
   getHtml,
   inputRef,
+  addAstToHistory,
+  history,
+  setHistorySelection,
+  historySelection,
 }) => {
   // eslint-disable-next-line no-null/no-null
   const containerRef = useRef<HTMLDivElement>(null);
@@ -126,8 +136,44 @@ const TextFormatter: FC<OwnProps> = ({
     setSelectedTextFormats(selectionAttributes);
   }, [isOpen, selectedTextRelativeInput, openLinkControl]);
 
+  const moveCursorToEnd = (input: HTMLDivElement) => {
+    const range = document.createRange();
+    const selection = window.getSelection()!;
+
+    range.selectNodeContents(input);
+    range.collapse(false);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    if (IS_ANDROID || IS_IOS) {
+      input.blur();
+      input.focus();
+    }
+  };
+
   useEffect(() => {
-    if (!isStyleEditing || !selectedTextRelativeInput || !inputRef.current) {
+    if (!inputRef.current) {
+      return;
+    }
+
+    if (history.isUndo) {
+      if (historySelection) {
+        restoreSelectionByOffsets(
+          inputRef as RefObject<HTMLDivElement>,
+          historySelection.start,
+          historySelection.end,
+        );
+        // eslint-disable-next-line no-null/no-null
+        setHistorySelection(null);
+      } else {
+        moveCursorToEnd(inputRef.current);
+        onClose();
+      }
+      return;
+    }
+
+    if (!selectedTextRelativeInput || !isStyleEditing) {
       return;
     }
 
@@ -136,7 +182,7 @@ const TextFormatter: FC<OwnProps> = ({
       selectedTextRelativeInput.start,
       selectedTextRelativeInput.end,
     );
-  }, [getHtml, isStyleEditing]);
+  }, [getHtml]);
 
   function updateInputStyles() {
     const input = linkUrlInputRef.current;
@@ -204,6 +250,7 @@ const TextFormatter: FC<OwnProps> = ({
         !!selectedFormats.spoiler,
       );
       setAST(newAst);
+      addAstToHistory(newAst, selectedTextRelativeInput);
       return {
         ...selectedFormats,
         spoiler: !selectedFormats.spoiler,
@@ -227,6 +274,7 @@ const TextFormatter: FC<OwnProps> = ({
         !!selectedFormats.bold,
       );
       setAST(newAst);
+      addAstToHistory(newAst, selectedTextRelativeInput);
       return {
         ...selectedFormats,
         bold: !selectedFormats.bold,
@@ -249,6 +297,7 @@ const TextFormatter: FC<OwnProps> = ({
         !!selectedFormats.italic,
       );
       setAST(newAst);
+      addAstToHistory(newAst, selectedTextRelativeInput);
       return {
         ...selectedFormats,
         italic: !selectedFormats.italic,
@@ -271,6 +320,7 @@ const TextFormatter: FC<OwnProps> = ({
         !!selectedFormats.underline,
       );
       setAST(newAst);
+      addAstToHistory(newAst, selectedTextRelativeInput);
       return {
         ...selectedFormats,
         underline: !selectedFormats.underline,
@@ -293,6 +343,7 @@ const TextFormatter: FC<OwnProps> = ({
         !!selectedFormats.strikethrough,
       );
       setAST(newAst);
+      addAstToHistory(newAst, selectedTextRelativeInput);
       return {
         ...selectedFormats,
         strikethrough: !selectedFormats.strikethrough,
@@ -315,6 +366,7 @@ const TextFormatter: FC<OwnProps> = ({
         !!selectedFormats.monospace,
       );
       setAST(newAst);
+      addAstToHistory(newAst, selectedTextRelativeInput);
       return {
         ...selectedFormats,
         monospace: !selectedFormats.monospace,
@@ -339,6 +391,7 @@ const TextFormatter: FC<OwnProps> = ({
         formattedLinkUrl,
       );
       setAST(newAst);
+      addAstToHistory(newAst, selectedTextRelativeInput);
       return {
         ...selectedFormats,
         textlinkhref: formattedLinkUrl.length ? formattedLinkUrl : '',

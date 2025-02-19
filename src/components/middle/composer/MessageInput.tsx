@@ -9,8 +9,10 @@ import { getActions, withGlobal } from '../../../global';
 
 import type { ApiInputMessageReplyInfo } from '../../../api/types';
 import type { IAnchorPosition, ISettings, ThreadId } from '../../../types';
+import type { SelectionOffsets } from '../../../util/getSelectionRelativeElement';
 import type { ASTNode } from '../../../util/parseHtmlAsAST';
 import type { Signal } from '../../../util/signals';
+import type { History } from '../../common/Composer';
 
 import { EDITABLE_INPUT_ID } from '../../../config';
 import { requestForcedReflow, requestMutation } from '../../../lib/fasterdom/fasterdom';
@@ -82,6 +84,11 @@ type OwnProps = {
   onFocus?: NoneToVoidFunction;
   onBlur?: NoneToVoidFunction;
   isNeedPremium?: boolean;
+  history: History;
+  setHistory: StateHookSetter<History>;
+  addAstToHistory: (ast: ASTNode[]) => void;
+  setHistorySelection: StateHookSetter<SelectionOffsets | null>;
+  historySelection: SelectionOffsets | null;
 };
 
 type StateProps = {
@@ -131,6 +138,9 @@ const MessageInput: FC<OwnProps & StateProps> = ({
   getAST,
   setAST,
   getJsonAST,
+  history,
+  addAstToHistory,
+  setHistory,
   setStyleEditing,
   isStyleEditing,
   placeholder,
@@ -153,6 +163,8 @@ const MessageInput: FC<OwnProps & StateProps> = ({
   onFocus,
   onBlur,
   isNeedPremium,
+  historySelection,
+  setHistorySelection,
 }) => {
   const {
     editLastMessage,
@@ -185,7 +197,6 @@ const MessageInput: FC<OwnProps & StateProps> = ({
   const [isTextFormatterOpen, openTextFormatter, closeTextFormatter] = useFlag();
   const [textFormatterAnchorPosition, setTextFormatterAnchorPosition] = useState<IAnchorPosition>();
   const [selectedRange, setSelectedRange] = useState<Range>();
-  // const [inputHistory, setInputHistory] = useState<Range>();
   const [isTextFormatterDisabled, setIsTextFormatterDisabled] = useState<boolean>(false);
   const { isMobile } = useAppLayout();
   const isMobileDevice = isMobile && (IS_IOS || IS_ANDROID);
@@ -202,7 +213,9 @@ const MessageInput: FC<OwnProps & StateProps> = ({
     }
     const onChange = () => {
       setStyleEditing(false);
-      setAST(parseHtmlAsAST(inputRef.current!.innerHTML));
+      const ast = parseHtmlAsAST(inputRef.current!.innerHTML);
+      addAstToHistory(ast);
+      setAST(ast);
     };
     inputRef.current.addEventListener('input', onChange);
     inputRef.current.addEventListener('paste', onChange);
@@ -211,9 +224,9 @@ const MessageInput: FC<OwnProps & StateProps> = ({
       if (!inputRef.current) {
         return;
       }
-      inputRef.current.addEventListener('input', onChange);
+      inputRef.current.removeEventListener('input', onChange);
       // eslint-disable-next-line react-hooks-static-deps/exhaustive-deps
-      inputRef.current.addEventListener('paste', onChange);
+      inputRef.current.removeEventListener('paste', onChange);
     };
   }, [inputRef.current]);
 
@@ -450,18 +463,24 @@ const MessageInput: FC<OwnProps & StateProps> = ({
     const isKeyboardShortcutUsing = (IS_MAC_OS && e.metaKey) || (!IS_MAC_OS && e.ctrlKey);
 
     const isUndo = isKeyboardShortcutUsing && !isComposing && e.key.toLowerCase() === 'z';
-    const isRedo = isKeyboardShortcutUsing && !isComposing && e.key.toLowerCase() === 'y';
 
-    if (!isUndo && !isRedo) return;
+    if (!isUndo) return;
     e.preventDefault();
 
-    // if (isUndo) {
-    //   console.log('ctrl+z');
-    // }
-    //
-    // if (isRedo) {
-    //   console.log('ctrl+y');
-    // }
+    setHistory((state) => {
+      if (state.nodes.length === 1) {
+        return { ...state };
+      }
+      const nodeToApply = state.nodes[state.nodes.length - 2];
+      setStyleEditing(true);
+      setAST(nodeToApply.ast);
+      // eslint-disable-next-line no-null/no-null
+      setHistorySelection(nodeToApply.selection || null);
+      return {
+        nodes: state.nodes.slice(0, -1),
+        isUndo: true,
+      };
+    });
   }
 
   function handleChange(e: ChangeEvent<HTMLDivElement>) {
@@ -692,6 +711,10 @@ const MessageInput: FC<OwnProps & StateProps> = ({
         isStyleEditing={isStyleEditing}
         setStyleEditing={setStyleEditing}
         onClose={handleCloseTextFormatter}
+        addAstToHistory={addAstToHistory}
+        history={history}
+        setHistorySelection={setHistorySelection}
+        historySelection={historySelection}
       />
       {forcedPlaceholder && <span className="forced-placeholder">{renderText(forcedPlaceholder!)}</span>}
     </div>
