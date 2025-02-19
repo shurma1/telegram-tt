@@ -24,7 +24,7 @@ const parse = (
   cb: Callback,
 ): void => {
   const imports: ImportItem[] = [];
-  const importPattern = /#include "([./\w_-]+)"/gi; // Убрал лишний escape-символ
+  const importPattern = /#include "([./\w_-]+)"/gi;
   let match = importPattern.exec(source);
 
   // eslint-disable-next-line no-null/no-null
@@ -46,7 +46,7 @@ function processImports(
   context: string,
   imports: ImportItem[],
   cb: Callback,
-): void { // Указал возвращаемый тип void
+): void {
   if (imports.length === 0) {
     // eslint-disable-next-line no-null/no-null
     cb(null, source);
