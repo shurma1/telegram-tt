@@ -27,7 +27,7 @@ import Button from '../../../ui/Button';
 import Draggable from '../../../ui/Draggable';
 import ListItem from '../../../ui/ListItem';
 import Loading from '../../../ui/Loading';
-import RadioGroup, {type IRadioOption} from "../../../ui/RadioGroup";
+import RadioGroup, { type IRadioOption } from '../../../ui/RadioGroup';
 
 type OwnProps = {
   isActive?: boolean;
@@ -133,7 +133,7 @@ const SettingsFoldersMain: FC<OwnProps & StateProps> = ({
   }];
 
   const handleTabsFormatChange = useCallback((float: string) => {
-    setSettingOption({isFoldersColumnEnabled: float === 'left' });
+    setSettingOption({ isFoldersColumnEnabled: float === 'left' });
   }, [setSettingOption]);
 
   const chatsCountByFolderId = useFolderManagerForChatsCount();
@@ -409,9 +409,9 @@ export default memo(withGlobal<OwnProps>(
       },
       settings: {
         byKey: {
-          isFoldersColumnEnabled
-        }
-      }
+          isFoldersColumnEnabled,
+        },
+      },
     } = global;
 
     return {
