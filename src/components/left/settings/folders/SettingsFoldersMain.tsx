@@ -27,6 +27,7 @@ import Button from '../../../ui/Button';
 import Draggable from '../../../ui/Draggable';
 import ListItem from '../../../ui/ListItem';
 import Loading from '../../../ui/Loading';
+import RadioGroup, {type IRadioOption} from "../../../ui/RadioGroup";
 
 type OwnProps = {
   isActive?: boolean;
@@ -41,6 +42,7 @@ type StateProps = {
   recommendedChatFolders?: ApiChatFolder[];
   maxFolders: number;
   isPremium?: boolean;
+  isFoldersColumnEnabled: boolean;
 };
 
 type SortState = {
@@ -62,6 +64,7 @@ const SettingsFoldersMain: FC<OwnProps & StateProps> = ({
   isPremium,
   recommendedChatFolders,
   maxFolders,
+  isFoldersColumnEnabled,
 }) => {
   const {
     loadRecommendedChatFolders,
@@ -112,10 +115,26 @@ const SettingsFoldersMain: FC<OwnProps & StateProps> = ({
 
   const lang = useOldLang();
 
+  const {
+    setSettingOption,
+  } = getActions();
+
   useHistoryBack({
     isActive,
     onBack: onReset,
   });
+
+  const TabsFormatOptions: IRadioOption[] = [{
+    label: lang('TabsViewTop'),
+    value: 'top',
+  }, {
+    label: lang('TabsViewLeft'),
+    value: 'left',
+  }];
+
+  const handleTabsFormatChange = useCallback((float: string) => {
+    setSettingOption({isFoldersColumnEnabled: float === 'left' });
+  }, [setSettingOption]);
 
   const chatsCountByFolderId = useFolderManagerForChatsCount();
   const userFolders = useMemo(() => {
@@ -367,6 +386,15 @@ const SettingsFoldersMain: FC<OwnProps & StateProps> = ({
           ))}
         </div>
       )}
+      <div className="settings-item pt-3">
+        <h4 className="settings-item-header mb-3" dir={lang.isRtl ? 'rtl' : undefined}>{lang('TabsView')}</h4>
+        <RadioGroup
+          name="theme"
+          options={TabsFormatOptions}
+          selected={isFoldersColumnEnabled ? 'left' : 'top'}
+          onChange={handleTabsFormatChange}
+        />
+      </div>
     </div>
   );
 };
@@ -374,10 +402,17 @@ const SettingsFoldersMain: FC<OwnProps & StateProps> = ({
 export default memo(withGlobal<OwnProps>(
   (global): StateProps => {
     const {
-      orderedIds: folderIds,
-      byId: foldersById,
-      recommended: recommendedChatFolders,
-    } = global.chatFolders;
+      chatFolders: {
+        orderedIds: folderIds,
+        byId: foldersById,
+        recommended: recommendedChatFolders,
+      },
+      settings: {
+        byKey: {
+          isFoldersColumnEnabled
+        }
+      }
+    } = global;
 
     return {
       folderIds,
@@ -385,6 +420,7 @@ export default memo(withGlobal<OwnProps>(
       isPremium: selectIsCurrentUserPremium(global),
       recommendedChatFolders,
       maxFolders: selectCurrentLimit(global, 'dialogFilters'),
+      isFoldersColumnEnabled,
     };
   },
 )(SettingsFoldersMain));

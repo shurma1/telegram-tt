@@ -308,6 +308,9 @@
 "Draft" = "Draft";
 "FilterAllChatsShort" = "All";
 "FilterAllChats" = "All Chats";
+"TabsView" = "Tabs view";
+"TabsViewLeft" = "Tabs on the left";
+"TabsViewTop" = "Tabs on the top";
 "CreateNewContact" = "Create New Contact";
 "FilterNoChatsToDisplay" = "Folder is empty";
 "ChatListEmptyChatListFilterText" = "No chats currently belong to this folder.";

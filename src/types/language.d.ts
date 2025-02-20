@@ -264,6 +264,9 @@ export interface LangPair {
   'Draft': undefined;
   'FilterAllChatsShort': undefined;
   'FilterAllChats': undefined;
+  'TabsView': undefined;
+  'TabsViewLeft': undefined;
+  'TabsViewTop': undefined;
   'CreateNewContact': undefined;
   'FilterNoChatsToDisplay': undefined;
   'ChatListEmptyChatListFilterText': undefined;
