@@ -34,6 +34,7 @@ import useWindowSize from '../../hooks/window/useWindowSize';
 
 import Button from '../ui/Button';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import FolderIconButton from './FolderIconButton';
 import Icon from './icons/Icon';
 import ReactionEmoji from './reactions/ReactionEmoji';
 import StickerButton from './StickerButton';
@@ -70,9 +71,11 @@ type OwnProps = {
   onStickerUnfave?: (sticker: ApiSticker) => void;
   onStickerFave?: (sticker: ApiSticker) => void;
   onStickerRemoveRecent?: (sticker: ApiSticker) => void;
+  onIconSelect?: (icon: string) => void;
   onContextMenuOpen?: NoneToVoidFunction;
   onContextMenuClose?: NoneToVoidFunction;
   onContextMenuClick?: NoneToVoidFunction;
+  isFolderPicker?: boolean;
 };
 
 const ITEMS_PER_ROW_FALLBACK = 8;
@@ -114,6 +117,8 @@ const StickerSet: FC<OwnProps> = ({
   onContextMenuOpen,
   onContextMenuClose,
   onContextMenuClick,
+  isFolderPicker,
+  onIconSelect,
 }) => {
   const {
     clearRecentStickers,
@@ -250,7 +255,12 @@ const StickerSet: FC<OwnProps> = ({
   const itemHeight = itemSize + verticalMargin;
   const heightWhenCut = Math.ceil(Math.min(itemsBeforeCutout, totalItemsCount) / itemsPerRow)
     * itemHeight - verticalMargin;
-  const height = isCut ? heightWhenCut : Math.ceil(totalItemsCount / itemsPerRow) * itemHeight - verticalMargin;
+  // I may burn in hell for this, but I do not know how to fix this bug.
+  const height = stickerSet.icons
+    ? 36
+    : isCut
+      ? heightWhenCut
+      : Math.ceil(totalItemsCount / itemsPerRow) * itemHeight - verticalMargin;
 
   const favoriteStickerIdsSet = useMemo(() => (
     favoriteStickers ? new Set(favoriteStickers.map(({ id }) => id)) : undefined
@@ -314,12 +324,16 @@ const StickerSet: FC<OwnProps> = ({
         )}
         style={`height: ${height}px;`}
       >
-        <canvas
-          ref={sharedCanvasRef}
-          className="shared-canvas"
-          style={canCut ? `height: ${heightWhenCut}px;` : undefined}
-        />
-        {(isRecent || isFavorite || canCut) && <canvas ref={sharedCanvasHqRef} className="shared-canvas" />}
+        {!isFolderPicker && (
+          <>
+            <canvas
+              ref={sharedCanvasRef}
+              className="shared-canvas"
+              style={canCut ? `height: ${heightWhenCut}px;` : undefined}
+            />
+            {(isRecent || isFavorite || canCut) && <canvas ref={sharedCanvasHqRef} className="shared-canvas" />}
+          </>
+        )}
         {withDefaultTopicIcon && (
           <Button
             className="StickerButton custom-emoji"
@@ -399,6 +413,18 @@ const StickerSet: FC<OwnProps> = ({
                 isEffectEmoji={stickerSet.id === EFFECT_EMOJIS_SET_ID}
                 noShowPremium={isCurrentUserPremium
                   && (stickerSet.id === EFFECT_STICKERS_SET_ID || stickerSet.id === EFFECT_EMOJIS_SET_ID)}
+              />
+            );
+          })}
+        {shouldRender && stickerSet.icons?.slice(0, isCut ? itemsBeforeCutout : stickerSet.icons.length)
+          .map((icon, i) => {
+            const key = `icon-${i}`;
+            return (
+              <FolderIconButton
+                emoticon={icon.emoticon}
+                color="translucent"
+                onClick={onIconSelect!}
+                key={key}
               />
             );
           })}
