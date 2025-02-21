@@ -1,0 +1,57 @@
+.folder-input {
+  outline: none;
+  border: none;
+  width: 100%;
+  background: var(--color-background);
+
+  &-icon-button {
+    --button-size: 35px;
+    border-radius: 10px;
+    border: none;
+    background: var(--color-background);
+    color: var(--color-text-secondary);
+    padding: 0;
+    width: var(--button-size);
+    height: var(--button-size);
+    min-width: var(--button-size);
+    font-size: 2.2rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &, &:active, &:focus {
+      outline: none;
+    }
+
+    &:hover {
+      background-color: var(--color-chat-hover);
+    }
+
+    & .AnimatedEmoji {
+      margin: 0 !important;
+    }
+
+    & .custom-emoji img {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    & .AnimatedSticker, & .custom-emoji {
+      min-width: 30px !important;
+      min-height: 30px !important;
+    }
+  }
+
+  &-from-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: calc(0.65rem - var(--border-width));
+    padding-left: calc(0.9rem - var(--border-width));
+  }
+
+  &-label {
+    left: 0.9rem !important;
+  }
+}

@@ -109,7 +109,7 @@ export type FoldersState = {
   error?: string;
   folderId?: number;
   chatFilter: string;
-  folder: Omit<ApiChatFolder, 'id' | 'description' | 'emoticon'>;
+  folder: Omit<ApiChatFolder, 'id' | 'description'>;
   includeFilters?: FolderIncludeFilters;
   excludeFilters?: FolderExcludeFilters;
 };
@@ -127,6 +127,7 @@ const INITIAL_STATE: FoldersState = {
     title: { text: '' },
     includedChatIds: [],
     excludedChatIds: [],
+    emoticon: '',
   },
 };
 
@@ -140,7 +141,8 @@ const foldersReducer: StateReducer<FoldersState, FoldersActions> = (
         ...state,
         folder: {
           ...state.folder,
-          title: { text: action.payload },
+          title: { ...action.payload.title },
+          emoticon: action.payload.emoticon,
         },
         isTouched: true,
       };

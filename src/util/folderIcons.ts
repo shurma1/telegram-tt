@@ -3,16 +3,18 @@ import type { IconName } from '../types/icons';
 const DEFAULT_ICON = '🗂';
 const MAIN_ICON = '💬';
 
-const FOLDER_ICONS_MAPPING: Record<string, IconName> = {
-  '🤖': 'bot',
-  '📢': 'channel-1',
-  '☑️': 'chat',
+export const FOLDER_ICONS_MAPPING: Record<string, IconName> = {
   '💬': 'chats',
-  '🗂': 'folder-1',
+  '☑️': 'chat',
+  '👤': 'user-1',
   '👥': 'group-1',
   '⭐': 'star-1',
-  '👤': 'user-1',
+  '📢': 'channel-1',
+  '🤖': 'bot',
+  '🗂': 'folder-1',
 };
+
+export const FOLDER_ICONS = Object.keys(FOLDER_ICONS_MAPPING);
 
 export function getFolderIconName(
   emoticon?: string,

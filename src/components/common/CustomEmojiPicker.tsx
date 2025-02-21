@@ -28,6 +28,7 @@ import {
 } from '../../global/selectors';
 import animateHorizontalScroll from '../../util/animateHorizontalScroll';
 import buildClassName from '../../util/buildClassName';
+import { FOLDER_ICONS } from '../../util/folderIcons';
 import { pickTruthy, unique } from '../../util/iteratees';
 import { IS_TOUCH_ENV } from '../../util/windowEnvironment';
 import { REM } from './helpers/mediaDimensions';
@@ -61,6 +62,7 @@ type OwnProps = {
   withDefaultTopicIcons?: boolean;
   selectedReactionIds?: string[];
   isStatusPicker?: boolean;
+  isFolderPicker?: boolean;
   isReactionPicker?: boolean;
   isTranslucent?: boolean;
   onCustomEmojiSelect: (sticker: ApiSticker) => void;
@@ -69,6 +71,7 @@ type OwnProps = {
   onContextMenuOpen?: NoneToVoidFunction;
   onContextMenuClose?: NoneToVoidFunction;
   onContextMenuClick?: NoneToVoidFunction;
+  onIconSelect?: (icon: string) => void;
 };
 
 type StateProps = {
@@ -104,6 +107,10 @@ const STICKER_SET_IDS_WITH_COVER = new Set([
   POPULAR_SYMBOL_SET_ID,
 ]);
 
+// let emojiDataPromise: Promise<EmojiModule>;
+// let emojiRawData: EmojiRawData;
+// let emojiData: EmojiData;
+
 const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
   className,
   pickerListClassName,
@@ -138,6 +145,8 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
   onContextMenuOpen,
   onContextMenuClose,
   onContextMenuClick,
+  isFolderPicker,
+  onIconSelect,
 }) => {
   // eslint-disable-next-line no-null/no-null
   const containerRef = useRef<HTMLDivElement>(null);
@@ -148,6 +157,8 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
   // eslint-disable-next-line no-null/no-null
   const sharedCanvasHqRef = useRef<HTMLCanvasElement>(null);
 
+  // const [emojis, setEmojis] = useState<AllEmojis | null>(null);
+  // const [emojiCategories, setEmojiCategories] = useState<EmojiCategory[]>([]);
   const { isMobile } = useAppLayout();
   const {
     handleScroll: handleContentScroll,
@@ -176,8 +187,50 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
 
   const areAddedLoaded = Boolean(addedCustomEmojiIds);
 
+  // useEffect(() => {
+  //   if (isFolderPicker) {
+  //     setTimeout(() => {
+  //       const exec = () => {
+  //         setEmojiCategories(emojiData.categories);
+  //
+  //         setEmojis(emojiData.emojis as AllEmojis);
+  //       };
+  //
+  //       if (emojiData) {
+  //         exec();
+  //       } else {
+  //         ensureEmojiData()
+  //           .then(exec);
+  //       }
+  //     }, OPEN_ANIMATION_DELAY);
+  //   }
+  // }, [isFolderPicker]);
+
   const allSets = useMemo(() => {
     const defaultSets: StickerSetOrReactionsSetOrRecent[] = [];
+
+    if (isFolderPicker) {
+      defaultSets.push({
+        id: TOP_SYMBOL_SET_ID,
+        accessHash: '',
+        title: '',
+        icons: FOLDER_ICONS.map((icon) => ({ type: 'folderIcon', emoticon: icon })),
+        count: FOLDER_ICONS.length,
+      });
+    }
+    // if (isFolderPicker && emojiCategories.length) {
+    //   const firstCategory = emojiCategories[0];
+    //   const reactions = firstCategory.emojis.map((emojiName) => ({type: 'emoji', emoticon: (emojis![emojiName] as Emoji).native } as ApiReactionEmoji)).slice(0, 20)
+    //   console.log('emojiCategories', reactions)
+    //   defaultSets.push({
+    //     id: TOP_SYMBOL_SET_ID,
+    //     accessHash: '1',
+    //     title: lang(emojiCategories[0].name[0]),
+    //     reactions: reactions,
+    //     count: reactions.length,
+    //     isEmoji: true,
+    //   });
+    // }
 
     if (isReactionPicker && isSavedMessages) {
       if (defaultTagReactions?.length) {
@@ -230,7 +283,7 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
           isEmoji: true,
         });
       }
-    } else if (isStatusPicker) {
+    } else if (isStatusPicker && !isFolderPicker) {
       const defaultStatusIconsPack = stickerSetsById[defaultStatusIconsId!];
       if (defaultStatusIconsPack?.stickers?.length) {
         const stickers = defaultStatusIconsPack.stickers
@@ -244,7 +297,7 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
           title: lang('RecentStickers'),
         });
       }
-    } else if (withDefaultTopicIcons) {
+    } else if (withDefaultTopicIcons && !isFolderPicker) {
       const defaultTopicIconsPack = stickerSetsById[defaultTopicIconsId!];
       if (defaultTopicIconsPack.stickers?.length) {
         defaultSets.push({
@@ -253,7 +306,7 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
           title: lang('RecentStickers'),
         });
       }
-    } else if (recentCustomEmojis?.length) {
+    } else if (recentCustomEmojis?.length && !isFolderPicker) {
       defaultSets.push({
         id: RECENT_SYMBOL_SET_ID,
         accessHash: '0',
@@ -281,7 +334,7 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
     addedCustomEmojiIds, isReactionPicker, isStatusPicker, withDefaultTopicIcons, recentCustomEmojis,
     customEmojiFeaturedIds, stickerSetsById, topReactions, availableReactions, lang, recentReactions,
     defaultStatusIconsId, defaultTopicIconsId, isSavedMessages, defaultTagReactions, chatEmojiSetId,
-    isWithPaidReaction,
+    isWithPaidReaction, isFolderPicker,
   ]);
 
   const noPopulatedSets = useMemo(() => (
@@ -440,6 +493,7 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
               isSavedMessages={isSavedMessages}
               isStatusPicker={isStatusPicker}
               isReactionPicker={isReactionPicker}
+              isFolderPicker={isFolderPicker}
               shouldHideHeader={shouldHideHeader}
               withDefaultTopicIcon={withDefaultTopicIcons && stickerSet.id === RECENT_SYMBOL_SET_ID}
               withDefaultStatusIcon={isStatusPicker && stickerSet.id === RECENT_SYMBOL_SET_ID}
@@ -454,6 +508,7 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
               onContextMenuOpen={onContextMenuOpen}
               onContextMenuClose={onContextMenuClose}
               onContextMenuClick={onContextMenuClick}
+              onIconSelect={onIconSelect}
               forcePlayback
             />
           );
@@ -462,6 +517,17 @@ const CustomEmojiPicker: FC<OwnProps & StateProps> = ({
     </div>
   );
 };
+
+// async function ensureEmojiData() {
+//   if (!emojiDataPromise) {
+//     emojiDataPromise = import('emoji-data-ios/emoji-data.json');
+//     emojiRawData = (await emojiDataPromise).default;
+//
+//     emojiData = uncompressEmoji(emojiRawData, 1);
+//   }
+//
+//   return emojiDataPromise;
+// }
 
 export default memo(withGlobal<OwnProps>(
   (global, { chatId, isStatusPicker, isReactionPicker }): StateProps => {

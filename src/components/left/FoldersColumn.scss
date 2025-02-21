@@ -37,6 +37,11 @@
       position: relative;
 
       width: min-content;
+
+      & img {
+        min-width: 100% !important;
+        min-height: 100% !important;
+      }
     }
 
     i {

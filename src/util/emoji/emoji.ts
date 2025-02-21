@@ -69,10 +69,11 @@ function nativeToUnifiedExtended(emoji: string) {
 
 export const nativeToUnifiedExtendedWithCache = withCache(nativeToUnifiedExtended);
 
-export function uncompressEmoji(data: EmojiRawData): EmojiData {
+export function uncompressEmoji(data: EmojiRawData, count?: number): EmojiData {
   const emojiData: EmojiData = { categories: [], emojis: {} };
 
-  for (let i = 0; i < data.length; i += 2) {
+  const dataLength = count ? count * 2 : data.length;
+  for (let i = 0; i < dataLength; i += 2) {
     const category = {
       id: data[i][0],
       name: data[i][1],

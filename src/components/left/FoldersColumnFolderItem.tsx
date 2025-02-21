@@ -1,16 +1,19 @@
 import React, {
   memo,
-  useRef,
+  useEffect,
+  useRef, useState,
 } from '../../lib/teact/teact';
 
-import type { ApiMessageEntityCustomEmoji } from '../../api/types';
+import type { ApiFormattedText } from '../../api/types';
 import type { IFolder } from '../../hooks/useFolder';
-import type { IconName } from '../../types/icons';
+import type { TFolderIcon } from './settings/folders/FolderIconPickerMenu';
 
 import { EMOJI_STATUS_LOOP_LIMIT } from '../../config';
+import { splitApiFolder } from '../../util/ApiFolderSplitAndMerge';
 import buildClassName from '../../util/buildClassName';
 import { getFolderIconName } from '../../util/folderIcons';
 import { MouseButton } from '../../util/windowEnvironment';
+import { renderTextWithEntities } from '../common/helpers/renderTextWithEntities';
 
 import useContextMenuHandlers from '../../hooks/useContextMenuHandlers';
 import { useFastClick } from '../../hooks/useFastClick';
@@ -23,33 +26,9 @@ import Badge from '../ui/Badge';
 import Menu from '../ui/Menu';
 import MenuItem from '../ui/MenuItem';
 import MenuSeparator from '../ui/MenuSeparator';
-import EMOJI_REGEX from '../../lib/twemojiRegex';
 
 export const FOLDER_EMOJI_TEXT_SIZE = 13;
 const FOLDER_ICON_SIZE = 36;
-
-enum FolderIconTypes {
-  customEmoji = 'custom_emoji',
-  animatedEmoji = 'animated_emoji',
-  svg = 'svg',
-}
-
-interface ICustomEmoji {
-  type: FolderIconTypes.customEmoji;
-  documentId: string;
-}
-
-interface IAnimatedEmoji {
-  type: FolderIconTypes.animatedEmoji;
-  emoji: string;
-}
-
-interface ISvgIcon {
-  type: FolderIconTypes.svg;
-  iconName: IconName;
-}
-
-type IFolderIcon = ICustomEmoji | IAnimatedEmoji | ISvgIcon;
 
 interface OwnProps {
   folder: IFolder;
@@ -95,75 +74,30 @@ const FoldersColumnFolderItem = ({
     onClick?.(clickArg!);
   });
 
-  function getFolderIcon(folderItem: IFolder): IFolderIcon {
-    const text = folderItem.titleFormated.text;
-    const matches = text.match(EMOJI_REGEX);
+  const [title, setTitle] = useState<ApiFormattedText>({ text: '', entities: [] });
+  // eslint-disable-next-line no-null/no-null
+  const [icon, setIcon] = useState<TFolderIcon | null>(null);
 
-    if (matches) {
-      const firstEmoji = matches[0];
-      const lastEmoji = matches[matches.length - 1];
+  useEffect(() => {
+    if (!folder) return;
+    const splttedApiFolder = splitApiFolder(folder.titleFormated, folder.emoticon);
+    setTitle(splttedApiFolder.title);
+    setIcon(splttedApiFolder.icon);
+  }, [folder]);
 
-      const firstIndex = text.indexOf(firstEmoji);
-      const lastIndex = text.lastIndexOf(lastEmoji);
-
-      const isFirstEmoji = firstIndex === 0;
-      const isLastEmoji = lastIndex === text.length - 2;
-
-      const emoji = isLastEmoji
-        ? lastEmoji
-        : isFirstEmoji
-          ? firstEmoji
-          : false;
-
-      if (emoji) {
-        const emojiIndex = isLastEmoji
-          ? lastIndex
-          : firstIndex;
-
-        const entities = folderItem.titleFormated.entities as ApiMessageEntityCustomEmoji[] || undefined;
-        if (entities && entities.length > 0) {
-          const customEmoji = entities[entities.length - 1].offset === emojiIndex
-            ? entities[entities.length - 1].documentId
-            : entities[0].offset === emojiIndex
-              ? entities[0].documentId
-              : false;
-
-          if (customEmoji) {
-            return {
-              type: FolderIconTypes.customEmoji,
-              documentId: customEmoji,
-            };
-          }
-        }
-
-        return {
-          type: FolderIconTypes.animatedEmoji,
-          emoji,
-        };
-      }
+  const renderFolderIcon = (folderIcon: TFolderIcon | null, isMain?: boolean) => {
+    if (isMain) {
+      return <Icon name="chats" />;
+    }
+    if (!folderIcon) {
+      return <Icon name="folder-1" />;
     }
 
-    return {
-      type: FolderIconTypes.svg,
-      iconName: getFolderIconName(folder.emoticon, isMainFolder),
-    };
-  }
-
-  function renderFolderIcon(folderItem: IFolder) {
-    const folderIcon = getFolderIcon(folderItem);
-
     switch (folderIcon.type) {
-      case FolderIconTypes.animatedEmoji: {
-        return (
-          <AnimatedEmoji
-            emoji={folderIcon.emoji}
-            forceLoadPreview
-            withEffects
-            customSize={FOLDER_ICON_SIZE}
-          />
-        );
+      case 'icon': {
+        return <Icon name={getFolderIconName(folderIcon.emoticon)} />;
       }
-      case FolderIconTypes.customEmoji: {
+      case 'customEmoji': {
         return (
           <CustomEmoji
             key={folderIcon.documentId}
@@ -175,16 +109,19 @@ const FoldersColumnFolderItem = ({
           />
         );
       }
-      case FolderIconTypes.svg: {
+      case 'emoji': {
         return (
-          <Icon name={folderIcon.iconName} className="folder-icon" />
+          <AnimatedEmoji
+            emoji={folderIcon.emoticon}
+            forceLoadPreview
+            withEffects
+            customSize={FOLDER_ICON_SIZE}
+          />
         );
       }
-      default: {
-        return undefined;
-      }
     }
-  }
+    return <Icon name="folder-1" />;
+  };
 
   const classNames = buildClassName(
     'folders-column-item',
@@ -210,12 +147,16 @@ const FoldersColumnFolderItem = ({
               className="folders-column-item-badge"
             />
           )}
-        {renderFolderIcon(folder)}
+        {renderFolderIcon(icon, isMainFolder)}
       </div>
       <span
         className="folder-title"
       >
-        {folder.title || ''}
+        {renderTextWithEntities({
+          text: title.text,
+          entities: title.entities,
+          emojiSize: FOLDER_EMOJI_TEXT_SIZE,
+        })}
       </span>
       {folder.contextActions && contextMenuAnchor !== undefined && (
         <Menu

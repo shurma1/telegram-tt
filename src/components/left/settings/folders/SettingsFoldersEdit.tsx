@@ -9,6 +9,7 @@ import type {
   FolderEditDispatch,
   FoldersState,
 } from '../../../../hooks/reducers/useFoldersReducer';
+import type { MergedApiFolder } from '../../../../util/ApiFolderSplitAndMerge';
 
 import { STICKER_SIZE_FOLDER_SETTINGS } from '../../../../config';
 import { isUserId } from '../../../../global/helpers';
@@ -28,9 +29,9 @@ import GroupChatInfo from '../../../common/GroupChatInfo';
 import Icon from '../../../common/icons/Icon';
 import PrivateChatInfo from '../../../common/PrivateChatInfo';
 import FloatingActionButton from '../../../ui/FloatingActionButton';
-import InputText from '../../../ui/InputText';
 import ListItem from '../../../ui/ListItem';
 import Spinner from '../../../ui/Spinner';
+import FolderInput from './FolderInput';
 
 type OwnProps = {
   state: FoldersState;
@@ -151,9 +152,8 @@ const SettingsFoldersEdit: FC<OwnProps & StateProps> = ({
     onBack,
   });
 
-  const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const { currentTarget } = event;
-    dispatch({ type: 'setTitle', payload: currentTarget.value.trim() });
+  const handleChange = useCallback((mergedApiFolder: MergedApiFolder) => {
+    dispatch({ type: 'setTitle', payload: mergedApiFolder });
   }, [dispatch]);
 
   const handleSubmit = useCallback(() => {
@@ -296,10 +296,10 @@ const SettingsFoldersEdit: FC<OwnProps & StateProps> = ({
             </p>
           )}
 
-          <InputText
+          <FolderInput
             className="mb-0"
             label={lang('FilterNameHint')}
-            value={state.folder.title.text}
+            folder={state.folder}
             onChange={handleChange}
             error={state.error && state.error === ERROR_NO_TITLE ? ERROR_NO_TITLE : undefined}
           />
