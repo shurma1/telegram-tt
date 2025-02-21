@@ -23,6 +23,7 @@ export interface ISelectedTextFormats {
   strikethrough?: boolean;
   monospace?: boolean;
   spoiler?: boolean;
+  quote?: boolean;
   textlinkhref?: string;
 }
 
@@ -109,6 +110,10 @@ export function getAstStylesForSelection(ast: ASTNode[], offset: number, length:
       }
       case ASTStyles.Code: {
         selectedTextFormats.monospace = true;
+        break;
+      }
+      case ASTStyles.Blockquote: {
+        selectedTextFormats.quote = true;
         break;
       }
     }
@@ -463,6 +468,8 @@ function getNodeTypeFromStyle(style: ASTStyles): NodeType | null {
       return NodeType.TextUrl;
     case ASTStyles.Code:
       return NodeType.Code;
+    case ASTStyles.Blockquote:
+      return NodeType.Blockquote;
     default:
       // eslint-disable-next-line no-null/no-null
       return null;
@@ -485,6 +492,8 @@ function getNodeStyleFromType(nodeType: NodeType): ASTStyles | null {
       return ASTStyles.TextUrl;
     case NodeType.Code:
       return ASTStyles.Code;
+    case NodeType.Blockquote:
+      return ASTStyles.Blockquote;
     default:
       // eslint-disable-next-line no-null/no-null
       return null;

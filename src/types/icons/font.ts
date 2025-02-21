@@ -166,6 +166,7 @@ export type FontIconName =
   | 'poll'
   | 'previous'
   | 'privacy-policy'
+  | 'quote_outline'
   | 'quote-text'
   | 'quote'
   | 'readchats'

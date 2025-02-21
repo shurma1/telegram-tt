@@ -245,10 +245,15 @@ export enum SettingsScreens {
   FoldersShare,
 }
 
+export interface FolderIcon {
+  type: 'folderIcon';
+  emoticon: string;
+}
+
 export type StickerSetOrReactionsSetOrRecent = Pick<ApiStickerSet, (
   'id' | 'accessHash' | 'title' | 'count' | 'stickers' | 'isEmoji' | 'installedDate' | 'isArchived' |
   'hasThumbnail' | 'hasStaticThumb' | 'hasAnimatedThumb' | 'hasVideoThumb' | 'thumbCustomEmojiId'
-)> & { reactions?: ApiReactionWithPaid[] };
+)> & { reactions?: ApiReactionWithPaid[] } & { icons?: FolderIcon[] };
 
 export enum LeftColumnContent {
   ChatList,

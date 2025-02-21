@@ -351,6 +351,29 @@ const TextFormatter: FC<OwnProps> = ({
     });
   });
 
+  const handleQuoteText = useLastCallback(() => {
+    if (!selectedTextRelativeInput) {
+      return;
+    }
+    setStyleEditing(true);
+
+    setSelectedTextFormats((selectedFormats) => {
+      const newAst = applyStylesToAst(
+        getAST(),
+        selectedTextRelativeInput.start,
+        selectedTextRelativeInput.end - selectedTextRelativeInput.start,
+        ASTStyles.Blockquote,
+        !!selectedFormats.quote,
+      );
+      setAST(newAst);
+      addAstToHistory(newAst, selectedTextRelativeInput);
+      return {
+        ...selectedFormats,
+        quote: !selectedFormats.quote,
+      };
+    });
+  });
+
   const handleMonospaceText = useLastCallback(() => {
     if (!selectedTextRelativeInput) {
       return;
@@ -520,6 +543,14 @@ const TextFormatter: FC<OwnProps> = ({
           onClick={handleMonospaceText}
         >
           <Icon name="monospace" />
+        </Button>
+        <Button
+          color="translucent"
+          ariaLabel="Quote text"
+          className={getFormatButtonClassName(selectedTextFormats, 'quote')}
+          onClick={handleQuoteText}
+        >
+          <Icon name="quote_outline" />
         </Button>
         <div className="TextFormatter-divider" />
         <Button
